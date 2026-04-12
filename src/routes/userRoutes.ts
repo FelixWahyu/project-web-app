@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { userService, userRegisterInput } from "../services/userService";
+import { userService, userRegisterInput, userLoginInput } from "../services/userService";
 
 export const userRoutes = new Elysia({ prefix: "/users" })
   .post(
@@ -18,4 +18,21 @@ export const userRoutes = new Elysia({ prefix: "/users" })
     {
       body: userRegisterInput,
     }
+  )
+  .post(
+    "/login",
+    async ({ body, set }) => {
+      const result = await userService.login(body);
+
+      set.status = result.status;
+      return {
+        success: result.success,
+        status: result.status,
+        response: result.response,
+      };
+    },
+    {
+      body: userLoginInput,
+    }
   );
+

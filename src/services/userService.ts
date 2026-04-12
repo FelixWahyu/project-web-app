@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "../db";
-import { users } from "../db/schema";
+import { users, sessions } from "../db/schema";
 import { t } from "elysia";
 
 export const userRegisterInput = t.Object({
@@ -10,6 +10,13 @@ export const userRegisterInput = t.Object({
 });
 
 export type UserRegisterInput = typeof userRegisterInput.static;
+
+export const userLoginInput = t.Object({
+  username: t.String(),
+  password: t.String(),
+});
+
+export type UserLoginInput = typeof userLoginInput.static;
 
 export const userService = {
   async register(body: UserRegisterInput) {
@@ -64,6 +71,62 @@ export const userService = {
           created_at: newUser.createdAt,
           updated_at: newUser.updatedAt,
         },
+      },
+    };
+  },
+
+  async login(body: UserLoginInput) {
+    // 1. Find user by username
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, body.username));
+
+    if (!user) {
+      return {
+        success: false,
+        status: 401,
+        response: {
+          message: "Username atau password salah.",
+          data: null,
+        },
+      };
+    }
+
+    // 2. Verify password against hashed password in DB
+    const isPasswordValid = await Bun.password.verify(body.password, user.password);
+
+    if (!isPasswordValid) {
+      return {
+        success: false,
+        status: 401,
+        response: {
+          message: "Username atau password salah.",
+          data: null,
+        },
+      };
+    }
+
+    // 3. Generate a secure token (UUID)
+    const token = crypto.randomUUID();
+
+    // 4. Calculate expiry: 1 day from now
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 1);
+
+    // 5. Store session in DB
+    await db.insert(sessions).values({
+      userId: user.id,
+      token,
+      expiresAt,
+    });
+
+    return {
+      success: true,
+      status: 200,
+      response: {
+        message: "Berhasil login.",
+        data: { token },
       },
     };
   },
