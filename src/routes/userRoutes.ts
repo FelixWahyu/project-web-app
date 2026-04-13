@@ -34,5 +34,24 @@ export const userRoutes = new Elysia({ prefix: "/users" })
     {
       body: userLoginInput,
     }
-  );
+  )
+  .get(
+    "/current",
+    async ({ headers, set }) => {
+      const authHeader = headers["authorization"];
 
+      // Validate Authorization header
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        set.status = 401;
+        return { error: "Unauthorized" };
+      }
+
+      // Extract token from "Bearer <token>"
+      const token = authHeader.substring(7);
+
+      const result = await userService.getCurrentUser(token);
+
+      set.status = result.status;
+      return result.response;
+    }
+  );
