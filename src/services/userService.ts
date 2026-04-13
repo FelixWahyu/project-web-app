@@ -131,6 +131,32 @@ export const userService = {
     };
   },
 
+  async logout(token: string) {
+    // 1. Find session by token
+    const [session] = await db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.token, token));
+
+    // 2. If no session found, return unauthorized
+    if (!session) {
+      return {
+        success: false,
+        status: 401,
+        response: { error: "Unauthorized" },
+      };
+    }
+
+    // 3. Delete the session from the database
+    await db.delete(sessions).where(eq(sessions.token, token));
+
+    return {
+      success: true,
+      status: 200,
+      response: { data: "Berhasil logout." },
+    };
+  },
+
   async getCurrentUser(token: string) {
     // 1. Find session by token
     const [session] = await db
