@@ -132,23 +132,17 @@ export const userService = {
   },
 
   async logout(token: string) {
-    // 1. Find session by token
-    const [session] = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.token, token));
+    // Directly delete the session and check affectedRows — saves one DB round-trip
+    const [result] = await db.delete(sessions).where(eq(sessions.token, token));
 
-    // 2. If no session found, return unauthorized
-    if (!session) {
+    // If no row was deleted, the token does not exist / already logged out
+    if (result.affectedRows === 0) {
       return {
         success: false,
         status: 401,
         response: { error: "Unauthorized" },
       };
     }
-
-    // 3. Delete the session from the database
-    await db.delete(sessions).where(eq(sessions.token, token));
 
     return {
       success: true,

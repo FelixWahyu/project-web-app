@@ -1,6 +1,19 @@
 import { Elysia } from "elysia";
 import { userService, userRegisterInput, userLoginInput } from "../services/userService";
 
+// Middleware: extract Bearer token from Authorization header
+// Reusable across all protected routes (DRY principle)
+const authMiddleware = new Elysia().derive({ as: "scoped" }, ({ headers, set }) => {
+  const authHeader = headers["authorization"];
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    set.status = 401;
+    return { bearerToken: null };
+  }
+
+  return { bearerToken: authHeader.substring(7) };
+});
+
 export const userRoutes = new Elysia({ prefix: "/users" })
   .post(
     "/",
@@ -35,43 +48,20 @@ export const userRoutes = new Elysia({ prefix: "/users" })
       body: userLoginInput,
     }
   )
-  .get(
-    "/current",
-    async ({ headers, set }) => {
-      const authHeader = headers["authorization"];
+  .use(authMiddleware)
+  .get("/current", async ({ bearerToken, set }) => {
+    if (!bearerToken) return { error: "Unauthorized" };
 
-      // Validate Authorization header
-      if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
+    const result = await userService.getCurrentUser(bearerToken);
 
-      // Extract token from "Bearer <token>"
-      const token = authHeader.substring(7);
+    set.status = result.status;
+    return result.response;
+  })
+  .delete("/logout", async ({ bearerToken, set }) => {
+    if (!bearerToken) return { error: "Unauthorized" };
 
-      const result = await userService.getCurrentUser(token);
+    const result = await userService.logout(bearerToken);
 
-      set.status = result.status;
-      return result.response;
-    }
-  )
-  .delete(
-    "/logout",
-    async ({ headers, set }) => {
-      const authHeader = headers["authorization"];
-
-      // Validate Authorization header
-      if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
-      // Extract token from "Bearer <token>"
-      const token = authHeader.substring(7);
-
-      const result = await userService.logout(token);
-
-      set.status = result.status;
-      return result.response;
-    }
-  );
+    set.status = result.status;
+    return result.response;
+  });
