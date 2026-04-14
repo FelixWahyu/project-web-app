@@ -4,9 +4,9 @@ import { users, sessions } from "../db/schema";
 import { t } from "elysia";
 
 export const userRegisterInput = t.Object({
-  name: t.String(),
-  username: t.String(),
-  password: t.String(),
+  name: t.String({ maxLength: 255, minLength: 1 }),
+  username: t.String({ maxLength: 255, minLength: 3 }),
+  password: t.String({ minLength: 6 }),
 });
 
 export type UserRegisterInput = typeof userRegisterInput.static;
