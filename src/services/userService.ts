@@ -12,8 +12,8 @@ export const userRegisterInput = t.Object({
 export type UserRegisterInput = typeof userRegisterInput.static;
 
 export const userLoginInput = t.Object({
-  username: t.String(),
-  password: t.String(),
+  username: t.String({ maxLength: 255, minLength: 3 }),
+  password: t.String({ maxLength: 255, minLength: 6 }),
 });
 
 export type UserLoginInput = typeof userLoginInput.static;
