@@ -18,6 +18,14 @@ export const userLoginInput = t.Object({
 
 export type UserLoginInput = typeof userLoginInput.static;
 
+export const userUpdateInput = t.Object({
+  name: t.Optional(t.String({ maxLength: 255, minLength: 1 })),
+  username: t.Optional(t.String({ maxLength: 255, minLength: 3 })),
+  password: t.Optional(t.String({ minLength: 6 })),
+});
+
+export type UserUpdateInput = typeof userUpdateInput.static;
+
 export const userService = {
   async register(body: UserRegisterInput) {
     // 1. Check if username already exists
@@ -201,6 +209,64 @@ export const userService = {
       status: 200,
       response: {
         data: user,
+      },
+    };
+  },
+
+  async updateUser(id: number, token: string, body: UserUpdateInput) {
+    // 1. Validate session token
+    const [session] = await db.select().from(sessions).where(eq(sessions.token, token));
+
+    if (!session || session.expiresAt < new Date() || session.userId !== id) {
+      return {
+        success: false,
+        status: 401,
+        response: { error: "Unauthorized" },
+      };
+    }
+
+    // 2. Prepare update data
+    const updateData: any = {};
+    if (body.name) updateData.name = body.name;
+    if (body.username) {
+      // Check if username is already taken by another user
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, body.username));
+      
+      if (existingUser && existingUser.id !== id) {
+        return {
+          success: false,
+          status: 400,
+          response: { error: "Username already exists" },
+        };
+      }
+      updateData.username = body.username;
+    }
+    if (body.password) {
+      updateData.password = await Bun.password.hash(body.password);
+    }
+
+    // 3. Update in database
+    await db.update(users).set(updateData).where(eq(users.id, id));
+
+    // 4. Retrieve updated user
+    const [updatedUser] = await db
+      .select({
+        name: users.name,
+        username: users.username,
+      })
+      .from(users)
+      .where(eq(users.id, id));
+
+    return {
+      success: true,
+      status: 200,
+      response: {
+        status: 200,
+        response: "Berhasil diupdate.",
+        data: updatedUser,
       },
     };
   },

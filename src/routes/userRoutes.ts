@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { userService, userRegisterInput, userLoginInput } from "../services/userService";
+import { userService, userRegisterInput, userLoginInput, userUpdateInput } from "../services/userService";
 
 // Middleware: extract Bearer token from Authorization header
 // Reusable across all protected routes (DRY principle)
@@ -57,6 +57,20 @@ export const userRoutes = new Elysia({ prefix: "/users" })
     set.status = result.status;
     return result.response;
   })
+  .patch(
+    "/current/:id",
+    async ({ params: { id }, bearerToken, body, set }) => {
+      if (!bearerToken) return { error: "Unauthorized" };
+
+      const result = await userService.updateUser(Number(id), bearerToken, body);
+
+      set.status = result.status;
+      return result.response;
+    },
+    {
+      body: userUpdateInput,
+    }
+  )
   .delete("/logout", async ({ bearerToken, set }) => {
     if (!bearerToken) return { error: "Unauthorized" };
 
