@@ -129,13 +129,32 @@ bun run dev
 
 ## 🧪 Testing API
 
-Berhubung kerangka Backend dibangun sebagai API, Anda wajib memilik alat bantu pengujian REST Client.
+Proyek ini mendukung dua lapis pengujian, yakni secara manual menggunakan REST Client, dan pengujian otomatis (Unit Testing) yang lebih komprehensif.
+
+### 1. Automated Testing (Unit & Integration)
+Aplikasi ini sudah dilengkapi dengan unit test modern yang dijalankan melalui _built-in test runner_ milik Bun. Test ini menguji segala bentuk jalur sukses maupun respon gagal di setiap skenario tanpa memengaruhi database produksi (harus di set jika belum).
+
+1. **Jalankan Unit Test**
+   Buka terminal, dan eksekusi perintah:
+   ```bash
+   bun run test
+   ```
+   Atau bisa secara langsung dengan mengeksekusi `bun test`.
+2. **Cakupan Pengujian**
+   - Registrasi dan Login (Validasi Input, Checking Duplikasi dsb.)
+   - Middleware & Rute Terproteksi.
+   - Pengecekan Edge Case serta manipulasi Session.
+*(Akan mencetak log eksekusi secara super-cepat seputar status tiap skenario test).*
+
+### 2. Manual Testing (REST Client)
+
+Berhubung kerangka Backend dibangun sebagai API, Anda juga memvalidasinya menggunakan alat bantu pengujian REST Client.
 Kami merokomendasikan seperti: 
 - [Postman](https://www.postman.com/)
 - [Insomnia](https://insomnia.rest/)
 - Ekstensi VSCode **ThunderClient**
 
-**Cara Test:**
+**Alur Test:**
 1. Hit registrasi `/api/users` via metode `POST` menggunakan body format JSON untuk merancang *user*.
 2. Lakukan login akun di `/api/users/login`, dan pastikan Anda mendapatkan balasan `"token"`.
 3. Gunakan `"token"` tersebut lalu sematkan di **Headers HTTP** (`Authorization: Bearer <token Anda>`) dan tembak pada route yang terproteksi (`/api/users/current`).
