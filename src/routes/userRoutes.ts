@@ -1,5 +1,15 @@
-import { Elysia } from "elysia";
-import { userService, userRegisterInput, userLoginInput, userUpdateInput } from "../services/userService";
+import { Elysia, t } from "elysia";
+import { 
+  userService, 
+  userRegisterInput, 
+  userLoginInput, 
+  userUpdateInput,
+  userRegisterResponse,
+  userLoginResponse,
+  userProfileResponse,
+  userUpdateResponse,
+  errorResponse
+} from "../services/userService";
 
 // Middleware: extract Bearer token from Authorization header
 // Reusable across all protected routes (DRY principle)
@@ -30,6 +40,10 @@ export const userRoutes = new Elysia({ prefix: "/users" })
     },
     {
       body: userRegisterInput,
+      response: {
+        201: userRegisterResponse,
+        400: errorResponse,
+      },
     }
   )
   .post(
@@ -46,6 +60,10 @@ export const userRoutes = new Elysia({ prefix: "/users" })
     },
     {
       body: userLoginInput,
+      response: {
+        200: userLoginResponse,
+        401: errorResponse,
+      },
     }
   )
   .use(authMiddleware)
@@ -56,6 +74,11 @@ export const userRoutes = new Elysia({ prefix: "/users" })
 
     set.status = result.status;
     return result.response;
+  }, {
+    response: {
+      200: userProfileResponse,
+      401: errorResponse,
+    }
   })
   .patch(
     "/current/:id",
@@ -69,6 +92,11 @@ export const userRoutes = new Elysia({ prefix: "/users" })
     },
     {
       body: userUpdateInput,
+      response: {
+        200: userUpdateResponse,
+        400: errorResponse,
+        401: errorResponse,
+      },
     }
   )
   .delete("/logout", async ({ bearerToken, set }) => {
@@ -78,4 +106,9 @@ export const userRoutes = new Elysia({ prefix: "/users" })
 
     set.status = result.status;
     return result.response;
+  }, {
+    response: {
+      200: t.Object({ data: t.String() }),
+      401: errorResponse,
+    }
   });

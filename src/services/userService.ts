@@ -26,6 +26,56 @@ export const userUpdateInput = t.Object({
 
 export type UserUpdateInput = typeof userUpdateInput.static;
 
+// Response Schemas for Swagger
+export const userRegisterResponse = t.Object({
+  message: t.String({ description: "Success message", examples: ["User created successfully"] }),
+  data: t.Object({
+    id: t.Number({ examples: [1] }),
+    name: t.String({ examples: ["John Doe"] }),
+    username: t.String({ examples: ["johndoe"] }),
+    created_at: t.Any({ description: "Registration timestamp" }),
+    updated_at: t.Any({ description: "Last update timestamp" }),
+  }),
+});
+
+export const userLoginResponse = t.Object({
+  success: t.Boolean({ examples: [true] }),
+  status: t.Number({ examples: [200] }),
+  response: t.Object({
+    message: t.String({ examples: ["Berhasil login."] }),
+    data: t.Object({
+      token: t.String({ description: "Authentication token (UUID)", examples: ["550e8400-e29b-41d4-a716-446655440000"] }),
+    }),
+  }),
+});
+
+export const userProfileResponse = t.Object({
+  data: t.Object({
+    id: t.Number({ examples: [1] }),
+    name: t.String({ examples: ["John Doe"] }),
+    username: t.String({ examples: ["johndoe"] }),
+    created_at: t.Any(),
+  }),
+});
+
+export const userUpdateResponse = t.Object({
+  status: t.Number({ examples: [200] }),
+  response: t.String({ examples: ["Berhasil diupdate."] }),
+  data: t.Object({
+    name: t.String({ examples: ["Jane Doe"] }),
+    username: t.String({ examples: ["janedoe"] }),
+  }),
+});
+
+export const errorResponse = t.Object({
+  success: t.Optional(t.Boolean({ examples: [false] })),
+  status: t.Optional(t.Number({ examples: [401] })),
+  message: t.Optional(t.String({ examples: ["An error occurred"] })),
+  error: t.Optional(t.String({ examples: ["Unauthorized"] })),
+  response: t.Optional(t.Any()),
+  data: t.Optional(t.Any()),
+});
+
 export const userService = {
   async register(body: UserRegisterInput) {
     // 1. Check if username already exists
