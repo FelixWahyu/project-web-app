@@ -136,6 +136,35 @@ describe("User API System Test", () => {
       expect(body.success).toBe(false);
       expect(body.response.message).toBe("Username atau password salah.");
     });
+
+    it("should fail when credentials are missing", async () => {
+      const resp = await app.handle(
+        new Request("http://localhost/api/users/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        })
+      );
+      
+      expect(resp.status).toBe(422);
+    });
+
+    it("should fail when user is not found", async () => {
+      const resp = await app.handle(
+        new Request("http://localhost/api/users/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: "nonexistent",
+            password: "anypassword",
+          }),
+        })
+      );
+      
+      const body = await resp.json();
+      expect(resp.status).toBe(401);
+      expect(body.response.message).toBe("Username atau password salah.");
+    });
   });
 
   describe("Protected Routes (Current, Update, Logout)", () => {
@@ -188,7 +217,7 @@ describe("User API System Test", () => {
       expect(body.data.username).toBe("oauthuser");
     });
 
-    it("should deny access with invalid token", async () => {
+    it("should deny access with valid token format but non-existent session", async () => {
       const resp = await app.handle(
         new Request("http://localhost/api/users/current", {
           method: "GET",
@@ -199,6 +228,24 @@ describe("User API System Test", () => {
       );
       
       expect(resp.status).toBe(401);
+    });
+
+    it("should deny access when Authorization header is missing", async () => {
+      // Test GET current
+      const getResp = await app.handle(
+        new Request("http://localhost/api/users/current", {
+          method: "GET",
+        })
+      );
+      expect(getResp.status).toBe(401);
+
+      // Test DELETE logout
+      const logoutResp = await app.handle(
+        new Request("http://localhost/api/users/logout", {
+          method: "DELETE",
+        })
+      );
+      expect(logoutResp.status).toBe(401);
     });
 
     it("should update user profile successfully", async () => {
@@ -236,6 +283,56 @@ describe("User API System Test", () => {
       );
       
       expect(resp.status).toBe(401);
+    });
+
+    it("should fail when updating to an already taken username", async () => {
+      // Create another user
+      await app.handle(
+        new Request("http://localhost/api/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: "Target User",
+            username: "targetuser",
+            password: "password123",
+          }),
+        })
+      );
+
+      // Attempt to update oauthuser's username to targetuser
+      const resp = await app.handle(
+        new Request(`http://localhost/api/users/current/${userId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({
+            username: "targetuser",
+          }),
+        })
+      );
+      
+      const body = await resp.json();
+      expect(resp.status).toBe(400);
+      expect(body.error).toBe("Username already exists");
+    });
+
+    it("should fail update with invalid input (name too short)", async () => {
+      const resp = await app.handle(
+        new Request(`http://localhost/api/users/current/${userId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({
+            name: "", // Too short
+          }),
+        })
+      );
+      
+      expect(resp.status).toBe(422);
     });
 
     it("should logout successfully", async () => {
